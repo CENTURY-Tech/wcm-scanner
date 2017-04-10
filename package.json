@@ -1,5 +1,5 @@
 {
-  "name": "wcm-scanner",
+  "name": "@ctek/wcm-scanner",
   "version": "0.0.0",
   "description": "Project scanner for WCM",
   "main": "dist/scanner.js",
@@ -13,6 +13,10 @@
     "predocs": "npm run build",
     "docs": " jsdoc README.md dist -r -d docs",
     "lint": "tslint --project . --fix"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CENTURY-Tech/wcm-scanner.git"
   },
   "keywords": [
     "scanner",
@@ -38,9 +42,9 @@
     "dist"
   ],
   "dependencies": {
+    "@ctek/wcm-graph": "^0.0.1",
     "fs-promise": "^1.0.0",
-    "ramda": "^0.23.0",
-    "wcm-graph": "^0.0.1"
+    "ramda": "^0.23.0"
   },
   "devDependencies": {
     "@types/fs-promise": "^1.0.1",
