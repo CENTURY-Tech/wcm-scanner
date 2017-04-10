@@ -1,0 +1,55 @@
+{
+  "name": "wcm-scanner",
+  "version": "0.0.0",
+  "description": "Project scanner for WCM",
+  "main": "dist/scanner.js",
+  "typings": "dist/scanner.d.ts",
+  "engines": {
+    "node": ">=6.0.0"
+  },
+  "scripts": {
+    "prebuild": "npm run lint",
+    "build": "rm -rf dist && tsc",
+    "predocs": "npm run build",
+    "docs": " jsdoc README.md dist -r -d docs",
+    "lint": "tslint --project . --fix"
+  },
+  "keywords": [
+    "scanner",
+    "wcm",
+    "web",
+    "components",
+    "web-components"
+  ],
+  "author": "Century TECH",
+  "contributors": [
+    {
+      "name": "Iain Reid",
+      "email": "iainreid382@gmail.com",
+      "url": "https://github.com/iainreid820"
+    }
+  ],
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/CENTURY-Tech/wcm-scanner/issues"
+  },
+  "homepage": "https://github.com/CENTURY-Tech/wcm-scanner#readme",
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "fs-promise": "^1.0.0",
+    "ramda": "^0.23.0",
+    "wcm-graph": "^0.0.1"
+  },
+  "devDependencies": {
+    "@types/fs-promise": "^1.0.1",
+    "@types/gist-bower-json": "gist:de3bf96ae0ded86a83d41082a0a7bdab",
+    "@types/gist-package-json": "gist:5c1cc527fe6b5b7dba41fec7fe54bf6e",
+    "@types/node": "^7.0.4",
+    "@types/ramda": "0.0.3",
+    "jsdoc": "^3.4.3",
+    "tslint": "^4.4.2",
+    "typescript": "^2.2.1"
+  }
+}
