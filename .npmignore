@@ -1,2 +1,6 @@
 # Ignore the source files
 src
+
+# Ignore all TypeScript related files
+tsconfig.json
+tslint.json
