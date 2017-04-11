@@ -1,6 +1,5 @@
-Web Component Manifest Scanner
----
+# Web Component Manifest Scanner
+
 Project scanner for WCM
 
-### Description
-
+[![npm](https://img.shields.io/npm/v/@ctek/wcm-scanner.svg?style=flat-square)](https://www.npmjs.com/package/@ctek/wcm-scanner)
