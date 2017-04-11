@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: scanner.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: scanner.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>"use strict";
+var __awaiter = (this &amp;&amp; this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const ramda_1 = require("ramda");
+const filesystem_1 = require("./filesystem/filesystem"); // tslint:disable-line
+const wcm_graph_1 = require("wcm-graph");
+const utilities_1 = require("./utilities/utilities");
+const nodeNameFrom = wcm_graph_1.DependencyGraph.stringifyDependencyMetadata;
+/**
+ * An asynchronous function that will prepare and return a dependency graph representing the inter-dependencies within
+ * the project at the path provided.
+ *
+ * @param {Object} opts                - The project and package manager configuration object
+ * @param {String} opts.projectPath    - The full path to the project
+ * @param {String} opts.packageManager - The package manger used in the project
+ *
+ * @returns {Promise&lt;DependencyGraph>} A dependency graph describing the inter-dependencies within the project
+ */
+function generateDeclaredDependenciesGraph(opts) {
+    "use strict";
+    return __awaiter(this, void 0, void 0, function* () {
+        const dependencyGraph = new wcm_graph_1.DependencyGraph();
+        yield registerDeclaredDependencies(dependencyGraph, opts);
+        yield registerImpliedDependencies(dependencyGraph);
+        for (let dependencyName of dependencyGraph.listDependencies()) {
+            const dependencyData = dependencyGraph.getDependencyData(dependencyName);
+            for (let [name, version] of ramda_1.toPairs(dependencyData.dependencies)) {
+                dependencyGraph.createInterDependency(dependencyName, { name, version });
+            }
+        }
+        return Promise.resolve(dependencyGraph);
+    });
+}
+exports.generateDeclaredDependenciesGraph = generateDeclaredDependenciesGraph;
+/**
+ * An asynchronous function that will prepare and return a dependency graph representing the runtime dependencies within
+ * the project at the path provided.
+ *
+ * @param {Object} opts             - The project configuration object
+ * @param {String} opts.projectPath - The full path to the project
+ * @param {String} entryPath        - The path to the application root relative from the project root
+ *
+ * @returns {Promise&lt;DependencyGraph>} A dependency graph listing the runtime dependencies within the project
+ */
+function generateImportedDependenciesGraph(opts, entryPath) {
+    "use strict";
+    return __awaiter(this, void 0, void 0, function* () {
+        return Promise.resolve(new wcm_graph_1.DependencyGraph());
+    });
+}
+exports.generateImportedDependenciesGraph = generateImportedDependenciesGraph;
+/**
+ * Register each of the declared dependencies from the project at the path provided.
+ *
+ * @private
+ *
+ * @param {DependencyGraph} dependencyGraph     - The dependency graph to register against
+ * @param {Object}          opts                - The project and package manager configuration object
+ * @param {String}          opts.projectPath    - The full path to the project
+ * @param {String}          opts.packageManager - The package manger used in the project
+ *
+ * @returns {Promise&lt;Void>}
+ */
+function registerDeclaredDependencies(dependencyGraph, opts) {
+    return __awaiter(this, void 0, void 0, function* () {
+        for (let dependencyJson of yield readInstalledDependenciesJson(opts)) {
+            dependencyGraph.addRealDependency(getDependencyMetadata(dependencyJson), dependencyJson);
+        }
+    });
+}
+/**
+ * Register each of the implied dependencies specified by the declared dependencies already registered.
+ *
+ * @private
+ *
+ * @param {DependencyGraph} dependencyGraph - The dependency graph to register against
+ *
+ * @returns {Promise&lt;Void>}
+ */
+function registerImpliedDependencies(dependencyGraph) {
+    return __awaiter(this, void 0, void 0, function* () {
+        for (let [name, version] of getAllDependencyPairs(dependencyGraph)) {
+            if (!ramda_1.contains(version, dependencyGraph.getDependencyAliases(name))) {
+                dependencyGraph.addImpliedDependency({ name, version });
+            }
+        }
+    });
+}
+/**
+ * Retrieve an array of the installed dependencies JSON.
+ *
+ * @private
+ *
+ * @param {Object} opts                - The project and package manager configuration object
+ * @param {String} opts.projectPath    - The full path to the project
+ * @param {String} opts.packageManager - The package manger used in the project
+ *
+ * @returns {Promise&lt;DependencyJson[]>} A list of the installed dependencies JSON files
+ */
+function readInstalledDependenciesJson(opts) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return Promise.all((yield filesystem_1.listInstalledDependencies(opts)).map(filesystem_1.readDependenciesJson(opts)));
+    });
+}
+/**
+ * Retrieve the dependency metadata from the dependency JSON.
+ *
+ * @private
+ *
+ * @param {DependencyJson} dependencyJson - The dependency JSON
+ *
+ * @return {DependencyMetadata} A object containing the dependencys name and version
+ */
+function getDependencyMetadata(dependencyJson) {
+    return { name: dependencyJson.name, version: utilities_1.firstDefinedProperty(["version", "_release"])(dependencyJson) };
+}
+/**
+ * Retrieve the child dependencies of the dependencies currently registered against the provided dependency graph.
+ *
+ * @private
+ *
+ * @param {DependencyGraph} dependencyGraph - The dependency graph to register against
+ *
+ * @returns {String[][]} The child dependencies as an array of arrays of strings
+ */
+function getAllDependencyPairs(dependencyGraph) {
+    return ramda_1.compose(ramda_1.unnest, ramda_1.map(ramda_1.compose(getDependencyPairs, (dependencyName) => {
+        return dependencyGraph.getDependencyData(dependencyName);
+    })))(dependencyGraph.listDependencies());
+}
+function getDependencyPairs(dependencyJson) {
+    return ramda_1.toPairs(ramda_1.prop("dependencies", dependencyJson));
+}
+generateDeclaredDependenciesGraph({
+    packageManager: "bower",
+    projectPath: "/Users/iain.reid/git_repositories/webapp-learn",
+})
+    .then((graph) => console.log(JSON.stringify(graph.listDependantsOfDependency("polymer"), null, 4))) // tslint:disable-line
+    .catch((err) => console.log(err)); // tslint:disable-line
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Global</h3><ul><li><a href="global.html#firstDefinedProperty">firstDefinedProperty</a></li><li><a href="global.html#generateDeclaredDependenciesGraph">generateDeclaredDependenciesGraph</a></li><li><a href="global.html#generateImportedDependenciesGraph">generateImportedDependenciesGraph</a></li><li><a href="global.html#listDirectoryChildren">listDirectoryChildren</a></li><li><a href="global.html#listInstalledDependencies">listInstalledDependencies</a></li><li><a href="global.html#pruneVersionString">pruneVersionString</a></li><li><a href="global.html#readDependenciesJson">readDependenciesJson</a></li><li><a href="global.html#toObjectBy">toObjectBy</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.3</a> on Tue Apr 11 2017 10:02:32 GMT+0100 (BST)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

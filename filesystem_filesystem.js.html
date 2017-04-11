@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: filesystem/filesystem.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: filesystem/filesystem.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>"use strict";
+var __awaiter = (this &amp;&amp; this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const fs_promise_1 = require("fs-promise");
+const path_1 = require("path");
+const ramda_1 = require("ramda");
+/**
+ * Read and parse the JSON file for the dependency located at the path provided.
+ *
+ * @param {Object} opts                - The project and package manager configuration object
+ * @param {String} opts.projectPath    - The full path to the project
+ * @param {String} opts.packageManager - The package manger used in the project
+ *
+ * @returns {Promise&lt;DependencyJson>} The dependency JSON
+ */
+function readDependenciesJson(opts) {
+    switch (opts.packageManager) {
+        case "bower":
+            return readDependencyBowerJson(opts.projectPath);
+        case "npm":
+            return readDependencyPackageJson(opts.projectPath);
+        default:
+            throw Error("A 'packageManager' must be supplied");
+    }
+}
+exports.readDependenciesJson = readDependenciesJson;
+function readDependencyBowerJson(projectPath) {
+    return (dependencyName) => {
+        return readBowerJson(path_1.resolve(projectPath, "bower_components", dependencyName));
+    };
+}
+exports.readDependencyBowerJson = readDependencyBowerJson;
+function readDependencyPackageJson(projectPath) {
+    return (dependencyName) => {
+        return readPackageJson(path_1.resolve(projectPath, "node_modules", dependencyName));
+    };
+}
+exports.readDependencyPackageJson = readDependencyPackageJson;
+function readBowerJson(projectPath) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return fs_promise_1.readJson(path_1.resolve(projectPath, ".bower.json"));
+    });
+}
+exports.readBowerJson = readBowerJson;
+function readPackageJson(projectPath) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return fs_promise_1.readJson(path_1.resolve(projectPath, "package.json"));
+    });
+}
+exports.readPackageJson = readPackageJson;
+/**
+ * Scan the relevant dependencies directory, depending on which package manager has been declared, and return a list of
+ * the installed dependencies.
+ *
+ * @param {Object} opts                - The project and package manager configuration object
+ * @param {String} opts.projectPath    - The full path to the project
+ * @param {String} opts.packageManager - The package manger used in the project
+ *
+ * @returns {Promise&lt;String[]>} A list of installed dependencies
+ */
+function listInstalledDependencies(opts) {
+    return __awaiter(this, void 0, void 0, function* () {
+        switch (opts.packageManager) {
+            case "bower":
+                return listDirectoryChildren(path_1.resolve(opts.projectPath, "bower_components")).then(extractFolderNamesSync);
+            case "npm":
+                return listDirectoryChildren(path_1.resolve(opts.projectPath, "node_modules")).then(extractFolderNamesSync);
+            default:
+                throw Error("A 'packageManager' must be supplied");
+        }
+    });
+}
+exports.listInstalledDependencies = listInstalledDependencies;
+/**
+ * Scan and retrieve a list of fully qualified paths for the children of the directory at the path provided.
+ *
+ * @param {String} directoryPath - The full path to the directory to scan
+ *
+ * @returns {String[]} A list of fully qualified paths for the children of the directory at the path provided
+ */
+function listDirectoryChildren(directoryPath) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return fs_promise_1.readdir(directoryPath).then(ramda_1.map(ramda_1.curryN(2, path_1.resolve)(directoryPath)));
+    });
+}
+exports.listDirectoryChildren = listDirectoryChildren;
+/**
+ * Synchronously retrieve the names of the folders from the list of fully qualified paths provided.
+ *
+ * @private
+ *
+ * @param {String[]} paths - The list of full paths
+ *
+ * @returns {String[]} A list of directory names retrieved from the list of fully qualified paths provided
+ */
+function extractFolderNamesSync(paths) {
+    return ramda_1.pipe(extractFoldersSync, extractPathEndingsSync, filterDotFiles)(paths);
+}
+/**
+ * Synchronously filter out any files from the list of fully qualified paths provided.
+ *
+ * @private
+ *
+ * @param {String[]} paths - The list of full paths
+ *
+ * @returns {String[]} A list of full directory paths extracted from the list of fully qualified paths provided
+ */
+function extractFoldersSync(paths) {
+    return paths.filter((item) => fs_promise_1.statSync(item).isDirectory());
+}
+/**
+ * Synchronously extract the path endings from the list of fully qualified paths provided.
+ *
+ * @private
+ *
+ * @param {String[]} paths - The list of full paths
+ *
+ * @returns {String[]} A list of path endings extracted from the list of fully qualified paths provided
+ */
+function extractPathEndingsSync(paths) {
+    return paths.map(ramda_1.pipe(ramda_1.split(path_1.sep), ramda_1.last));
+}
+/**
+ * Synchronously remove filesname that are hidden.
+ *
+ * @private
+ *
+ * @param {String[]} filenames - The list of filenames
+ *
+ * @returns {String[]} A list of filenames that are not hidden
+ */
+function filterDotFiles(filesname) {
+    return ramda_1.filter(ramda_1.test(/^\w/), filesname);
+}
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Global</h3><ul><li><a href="global.html#firstDefinedProperty">firstDefinedProperty</a></li><li><a href="global.html#generateDeclaredDependenciesGraph">generateDeclaredDependenciesGraph</a></li><li><a href="global.html#generateImportedDependenciesGraph">generateImportedDependenciesGraph</a></li><li><a href="global.html#listDirectoryChildren">listDirectoryChildren</a></li><li><a href="global.html#listInstalledDependencies">listInstalledDependencies</a></li><li><a href="global.html#pruneVersionString">pruneVersionString</a></li><li><a href="global.html#readDependenciesJson">readDependenciesJson</a></li><li><a href="global.html#toObjectBy">toObjectBy</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.3</a> on Tue Apr 11 2017 10:02:32 GMT+0100 (BST)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
