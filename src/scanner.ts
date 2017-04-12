@@ -1,23 +1,20 @@
 import { compose, contains, map, prop, toPairs, unnest } from "ramda";
-import { DependencyJson, IDependencyOptions, listInstalledDependencies, readDependenciesJson } from "./filesystem/filesystem"; // tslint:disable-line
-import { DependencyGraph, IBaseDependencyMetadata } from "wcm-graph";
+import { DependencyJson, IProjectOptions, listInstalledDependencies, readDependenciesJson } from "./filesystem/filesystem"; // tslint:disable-line
+import { IInspectionOptions, inspectSourceFiles } from "./inspection/inspection"; // tslint:disable-line
+import { DependencyGraph, IDependencyMetadata, ImportGraph } from "@ctek/wcm-graph";
 import { firstDefinedProperty } from "./utilities/utilities";
-
-const nodeNameFrom = DependencyGraph.stringifyDependencyMetadata;
 
 /**
  * An asynchronous function that will prepare and return a dependency graph representing the inter-dependencies within
  * the project at the path provided.
  *
- * @param {Object} opts                - The project and package manager configuration object
- * @param {String} opts.projectPath    - The full path to the project
- * @param {String} opts.packageManager - The package manger used in the project
+ * @param {IProjectOptions} opts                - The project and package manager configuration object
+ * @param {string}          opts.projectPath    - The full path to the project
+ * @param {string}          opts.packageManager - The package manger used in the project
  *
  * @returns {Promise<DependencyGraph>} A dependency graph describing the inter-dependencies within the project
  */
-export async function generateDeclaredDependenciesGraph(opts: IDependencyOptions): Promise<DependencyGraph> {
-  "use strict";
-
+export async function generateDependencyGraph(opts: IProjectOptions): Promise<DependencyGraph> {
   const dependencyGraph = new DependencyGraph();
 
   await registerDeclaredDependencies(dependencyGraph, opts);
@@ -31,23 +28,18 @@ export async function generateDeclaredDependenciesGraph(opts: IDependencyOptions
     }
   }
 
-  return Promise.resolve(dependencyGraph);
+  return dependencyGraph;
 }
 
 /**
- * An asynchronous function that will prepare and return a dependency graph representing the runtime dependencies within
- * the project at the path provided.
- *
- * @param {Object} opts             - The project configuration object
- * @param {String} opts.projectPath - The full path to the project
- * @param {String} entryPath        - The path to the application root relative from the project root
- *
- * @returns {Promise<DependencyGraph>} A dependency graph listing the runtime dependencies within the project
+ * @returns {Promise<ImportGraph>}
  */
-export async function generateImportedDependenciesGraph(opts: IDependencyOptions, entryPath: string): Promise<DependencyGraph> { // tslint:disable-line
-  "use strict";
+export async function generateImportGraph(opts: IInspectionOptions): Promise<ImportGraph> { // tslint:disable-line
+  const importGraph = new ImportGraph();
 
-  return Promise.resolve(new DependencyGraph());
+  await registerSourceFiles(importGraph, opts);
+
+  return importGraph;
 }
 
 /**
@@ -56,13 +48,13 @@ export async function generateImportedDependenciesGraph(opts: IDependencyOptions
  * @private
  *
  * @param {DependencyGraph} dependencyGraph     - The dependency graph to register against
- * @param {Object}          opts                - The project and package manager configuration object
- * @param {String}          opts.projectPath    - The full path to the project
- * @param {String}          opts.packageManager - The package manger used in the project
+ * @param {IProjectOptions} opts                - The project and package manager configuration object
+ * @param {string}          opts.projectPath    - The full path to the project
+ * @param {string}          opts.packageManager - The package manger used in the project
  *
- * @returns {Promise<Void>}
+ * @returns {Promise<void>}
  */
-async function registerDeclaredDependencies(dependencyGraph: DependencyGraph, opts: IDependencyOptions): Promise<void> {
+async function registerDeclaredDependencies(dependencyGraph: DependencyGraph, opts: IProjectOptions): Promise<void> {
   for (let dependencyJson of await readInstalledDependenciesJson(opts)) {
     dependencyGraph.addRealDependency(getDependencyMetadata(dependencyJson), dependencyJson);
   }
@@ -75,9 +67,9 @@ async function registerDeclaredDependencies(dependencyGraph: DependencyGraph, op
  *
  * @param {DependencyGraph} dependencyGraph - The dependency graph to register against
  *
- * @returns {Promise<Void>}
+ * @returns {void}
  */
-async function registerImpliedDependencies(dependencyGraph: DependencyGraph): Promise<void> {
+function registerImpliedDependencies(dependencyGraph: DependencyGraph): void {
   for (let [name, version] of getAllDependencyPairs(dependencyGraph)) {
     if (!contains(version, dependencyGraph.getDependencyAliases(name))) {
       dependencyGraph.addImpliedDependency({ name, version });
@@ -86,17 +78,35 @@ async function registerImpliedDependencies(dependencyGraph: DependencyGraph): Pr
 }
 
 /**
+ * @private
+ *
+ * @param {ImportGraph}        importGraph     - The import graph to register against
+ * @param {IInspectionOptions} opts            - The project and package manager configuration object
+ * @param {string}             opts.entryPath  - The full path to the project
+ * @param {string}             opts.sourceRoot - The package manger used in the project
+ *
+ * @returns {Promise<void>}
+ */
+async function registerSourceFiles(importGraph: ImportGraph, opts: IInspectionOptions): Promise<void> {
+  for (let inspection of inspectSourceFiles(opts)) {
+    const fileMetadata = await inspection;
+
+    console.log(JSON.stringify(fileMetadata, null, 4)) // tslint:disable-line
+  }
+}
+
+/**
  * Retrieve an array of the installed dependencies JSON.
  *
  * @private
  *
- * @param {Object} opts                - The project and package manager configuration object
- * @param {String} opts.projectPath    - The full path to the project
- * @param {String} opts.packageManager - The package manger used in the project
+ * @param {IProjectOptions} opts                - The project and package manager configuration object
+ * @param {string}          opts.projectPath    - The full path to the project
+ * @param {string}          opts.packageManager - The package manger used in the project
  *
  * @returns {Promise<DependencyJson[]>} A list of the installed dependencies JSON files
  */
-async function readInstalledDependenciesJson(opts: IDependencyOptions): Promise<DependencyJson[]> {
+async function readInstalledDependenciesJson(opts: IProjectOptions): Promise<DependencyJson[]> {
   return Promise.all((await listInstalledDependencies(opts)).map(readDependenciesJson(opts)));
 }
 
@@ -109,7 +119,7 @@ async function readInstalledDependenciesJson(opts: IDependencyOptions): Promise<
  *
  * @return {DependencyMetadata} A object containing the dependencys name and version
  */
-function getDependencyMetadata(dependencyJson: DependencyJson): IBaseDependencyMetadata {
+function getDependencyMetadata(dependencyJson: DependencyJson): IDependencyMetadata {
   return { name: dependencyJson.name, version: firstDefinedProperty(["version", "_release"])(dependencyJson) };
 }
 
@@ -120,7 +130,7 @@ function getDependencyMetadata(dependencyJson: DependencyJson): IBaseDependencyM
  *
  * @param {DependencyGraph} dependencyGraph - The dependency graph to register against
  *
- * @returns {String[][]} The child dependencies as an array of arrays of strings
+ * @returns {string[][]} The child dependencies as an array of arrays of strings
  */
 function getAllDependencyPairs(dependencyGraph: DependencyGraph): string[][] {
   return compose(unnest, map(compose(getDependencyPairs, (dependencyName: string) => {
@@ -132,9 +142,18 @@ function getDependencyPairs(dependencyJson: DependencyJson): string[][] {
   return toPairs<string, string>(prop("dependencies", dependencyJson));
 }
 
-generateDeclaredDependenciesGraph({
-  packageManager: "bower",
-  projectPath: "/Users/iain.reid/git_repositories/webapp-learn",
+generateImportGraph({
+  entryPath: "index.html",
+  importResolutions: {
+    "/bower_components": "../../bower_components",
+    "/views": "views",
+  },
+  importTags: {
+    "app-route": "import",
+    "link": "href",
+    "script": "src",
+  },
+  sourceRoot: "/Users/iain.reid/git_repositories/webapp-learn/.build/public/",
 })
-  .then((graph) => console.log(JSON.stringify(graph.listDependantsOfDependency("polymer"), null, 4))) // tslint:disable-line
+  .then((graph) => console.log(JSON.stringify(graph.listFiles(), null, 4))) // tslint:disable-line
   .catch((err) => console.log(err)); // tslint:disable-line

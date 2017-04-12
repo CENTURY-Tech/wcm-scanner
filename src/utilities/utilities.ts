@@ -11,12 +11,12 @@ export interface IKeyValue<T> {
  * Find and return the first defined property from within the list of provided properties from the object later
  * provided.
  *
- * @param {String[]} props - The properties to check if they are defined
+ * @param {string[]} props - The properties to check if they are defined
  *
  * @return {Function} A method that will return the first defined property from the object provided
  */
-export function firstDefinedProperty(props: string[]): (obj: Object) => any {
-  return (obj: Object): any => {
+export function firstDefinedProperty(props: string[]): (obj: object) => any {
+  return (obj: object): any => {
     return prop(compose(head, curry(intersection)(props), keys)(obj), obj);
   };
 }
@@ -38,9 +38,9 @@ export function toObjectBy<U>(method: (x: string) => U): (arr: string[]) => IKey
  * Prune any preceeding text from a version identifier, commonly found in Bower declaration files, and return the true
  * version.
  *
- * @param {String} version - The version string to parse
+ * @param {string} version - The version string to parse
  *
- * @returns {String} The true version from the string provided
+ * @returns {string} The true version from the string provided
  */
 export function pruneVersionString(version: string): string {
   return /(\*)|(\^|~|<|>|(<|>)=)?((\d.)?(\d.)?)?\d$/.exec(version)[0];

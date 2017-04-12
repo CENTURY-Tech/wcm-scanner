@@ -27,7 +27,7 @@ export type DependencyReader<T> = (dependencyName: string) => Promise<T>;
 /**
  * An interface representing the dependency readers.
  */
-export interface IDependencyOptions {
+export interface IProjectOptions {
   projectPath: string;
   packageManager: PackageManager;
 }
@@ -40,13 +40,13 @@ export type DependencyJson = BowerJson | PackageJson;
 /**
  * Read and parse the JSON file for the dependency located at the path provided.
  *
- * @param {Object} opts                - The project and package manager configuration object
- * @param {String} opts.projectPath    - The full path to the project
- * @param {String} opts.packageManager - The package manger used in the project
+ * @param {IProjectOptions} opts                - The project and package manager configuration object
+ * @param {string}          opts.projectPath    - The full path to the project
+ * @param {string}          opts.packageManager - The package manger used in the project
  *
  * @returns {Promise<DependencyJson>} The dependency JSON
  */
-export function readDependenciesJson(opts: IDependencyOptions): DependencyReader<DependencyJson> | never {
+export function readDependenciesJson(opts: IProjectOptions): DependencyReader<DependencyJson> | never {
   switch (opts.packageManager) {
     case "bower":
       return readDependencyBowerJson(opts.projectPath);
@@ -69,11 +69,11 @@ export function readDependencyPackageJson(projectPath: string): DependencyReader
   };
 }
 
-export async function readBowerJson(projectPath: string): Promise<BowerJson> {
+export function readBowerJson(projectPath: string): Promise<BowerJson> {
   return readJson(resolve(projectPath, ".bower.json"));
 }
 
-export async function readPackageJson(projectPath: string): Promise<PackageJson> {
+export function readPackageJson(projectPath: string): Promise<PackageJson> {
   return readJson(resolve(projectPath, "package.json"));
 }
 
@@ -81,18 +81,18 @@ export async function readPackageJson(projectPath: string): Promise<PackageJson>
  * Scan the relevant dependencies directory, depending on which package manager has been declared, and return a list of
  * the installed dependencies.
  *
- * @param {Object} opts                - The project and package manager configuration object
- * @param {String} opts.projectPath    - The full path to the project
- * @param {String} opts.packageManager - The package manger used in the project
+ * @param {IProjectOptions} opts                - The project and package manager configuration object
+ * @param {string}          opts.projectPath    - The full path to the project
+ * @param {string}          opts.packageManager - The package manger used in the project
  *
- * @returns {Promise<String[]>} A list of installed dependencies
+ * @returns {Promise<string[]>} A list of installed dependencies
  */
-export async function listInstalledDependencies(opts: IDependencyOptions): Promise<string[]> | never {
+export function listInstalledDependencies(opts: IProjectOptions): Promise<string[]> | never {
   switch (opts.packageManager) {
     case "bower":
-      return listDirectoryChildren(resolve(opts.projectPath, "bower_components")).then(extractFolderNamesSync);
+      return listDirectoryContents(resolve(opts.projectPath, "bower_components")).then(extractFolderNamesSync);
     case "npm":
-      return listDirectoryChildren(resolve(opts.projectPath, "node_modules")).then(extractFolderNamesSync);
+      return listDirectoryContents(resolve(opts.projectPath, "node_modules")).then(extractFolderNamesSync);
     default:
       throw Error("A 'packageManager' must be supplied");
   }
@@ -101,11 +101,11 @@ export async function listInstalledDependencies(opts: IDependencyOptions): Promi
 /**
  * Scan and retrieve a list of fully qualified paths for the children of the directory at the path provided.
  *
- * @param {String} directoryPath - The full path to the directory to scan
+ * @param {string} directoryPath - The full path to the directory to scan
  *
- * @returns {String[]} A list of fully qualified paths for the children of the directory at the path provided
+ * @returns {string[]} A list of fully qualified paths for the children of the directory at the path provided
  */
-export async function listDirectoryChildren(directoryPath: string): Promise<string[]> {
+function listDirectoryContents(directoryPath: string): Promise<string[]> {
   return readdir(directoryPath).then(map<string, string>(curryN(2, resolve)(directoryPath)));
 }
 
@@ -114,9 +114,9 @@ export async function listDirectoryChildren(directoryPath: string): Promise<stri
  *
  * @private
  *
- * @param {String[]} paths - The list of full paths
+ * @param {string[]} paths - The list of full paths
  *
- * @returns {String[]} A list of directory names retrieved from the list of fully qualified paths provided
+ * @returns {string[]} A list of directory names retrieved from the list of fully qualified paths provided
  */
 function extractFolderNamesSync(paths: string[]): string[] {
   return pipe(extractFoldersSync, extractPathEndingsSync, filterDotFiles)(paths);
@@ -127,9 +127,9 @@ function extractFolderNamesSync(paths: string[]): string[] {
  *
  * @private
  *
- * @param {String[]} paths - The list of full paths
+ * @param {string[]} paths - The list of full paths
  *
- * @returns {String[]} A list of full directory paths extracted from the list of fully qualified paths provided
+ * @returns {string[]} A list of full directory paths extracted from the list of fully qualified paths provided
  */
 function extractFoldersSync(paths: string[]): string[] {
   return paths.filter((item) => statSync(item).isDirectory());
@@ -140,9 +140,9 @@ function extractFoldersSync(paths: string[]): string[] {
  *
  * @private
  *
- * @param {String[]} paths - The list of full paths
+ * @param {string[]} paths - The list of full paths
  *
- * @returns {String[]} A list of path endings extracted from the list of fully qualified paths provided
+ * @returns {string[]} A list of path endings extracted from the list of fully qualified paths provided
  */
 function extractPathEndingsSync(paths: string[]): string[] {
   return paths.map(pipe(split(sep), last as (x: string[]) => string));
@@ -153,10 +153,10 @@ function extractPathEndingsSync(paths: string[]): string[] {
  *
  * @private
  *
- * @param {String[]} filenames - The list of filenames
+ * @param {string[]} filenames - The list of filenames
  *
- * @returns {String[]} A list of filenames that are not hidden
+ * @returns {string[]} A list of filenames that are not hidden
  */
-function filterDotFiles(filesname: string[]): string[] {
-  return filter(test(/^\w/), filesname);
+function filterDotFiles(filenames: string[]): string[] {
+  return filter(test(/^\w/), filenames);
 }
