@@ -1,6 +1,6 @@
 import { compose, contains, map, prop, toPairs, unnest } from "ramda";
 import { DependencyJson, IDependencyOptions, listInstalledDependencies, readDependenciesJson } from "./filesystem/filesystem"; // tslint:disable-line
-import { DependencyGraph, IBaseDependencyMetadata } from "wcm-graph";
+import { DependencyGraph, IBaseDependencyMetadata } from "@ctek/wcm-graph";
 import { firstDefinedProperty } from "./utilities/utilities";
 
 const nodeNameFrom = DependencyGraph.stringifyDependencyMetadata;
@@ -23,10 +23,10 @@ export async function generateDeclaredDependenciesGraph(opts: IDependencyOptions
   await registerDeclaredDependencies(dependencyGraph, opts);
   await registerImpliedDependencies(dependencyGraph);
 
-  for (let dependencyName of dependencyGraph.listDependencies()) {
+  for (const dependencyName of dependencyGraph.listDependencies()) {
     const dependencyData = dependencyGraph.getDependencyData(dependencyName);
 
-    for (let [name, version] of toPairs<string, string>(dependencyData.dependencies)) {
+    for (const [name, version] of toPairs<string, string>(dependencyData.dependencies)) {
       dependencyGraph.createInterDependency(dependencyName, { name, version });
     }
   }
@@ -63,7 +63,7 @@ export async function generateImportedDependenciesGraph(opts: IDependencyOptions
  * @returns {Promise<Void>}
  */
 async function registerDeclaredDependencies(dependencyGraph: DependencyGraph, opts: IDependencyOptions): Promise<void> {
-  for (let dependencyJson of await readInstalledDependenciesJson(opts)) {
+  for (const dependencyJson of await readInstalledDependenciesJson(opts)) {
     dependencyGraph.addRealDependency(getDependencyMetadata(dependencyJson), dependencyJson);
   }
 }
@@ -78,7 +78,7 @@ async function registerDeclaredDependencies(dependencyGraph: DependencyGraph, op
  * @returns {Promise<Void>}
  */
 async function registerImpliedDependencies(dependencyGraph: DependencyGraph): Promise<void> {
-  for (let [name, version] of getAllDependencyPairs(dependencyGraph)) {
+  for (const [name, version] of getAllDependencyPairs(dependencyGraph)) {
     if (!contains(version, dependencyGraph.getDependencyAliases(name))) {
       dependencyGraph.addImpliedDependency({ name, version });
     }

@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "description": "Project scanner for WCM",
   "main": "dist/scanner.js",
-  "typings": "dist/scanner.d.ts",
+  "types": "dist/scanner.d.ts",
   "engines": {
     "node": ">=6.0.0"
   },
@@ -42,7 +42,7 @@
     "dist"
   ],
   "dependencies": {
-    "@ctek/wcm-graph": "^0.0.1",
+    "@ctek/wcm-graph": "^0.0.3",
     "fs-promise": "^1.0.0",
     "ramda": "^0.23.0"
   },
@@ -53,7 +53,7 @@
     "@types/node": "^7.0.4",
     "@types/ramda": "0.0.3",
     "jsdoc": "^3.4.3",
-    "tslint": "^4.4.2",
-    "typescript": "^2.2.1"
+    "tslint": "^5.4.3",
+    "typescript": "^2.4.1"
   }
 }

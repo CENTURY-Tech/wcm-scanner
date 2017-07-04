@@ -5,7 +5,7 @@ import { compose, converge, curry, head, identity, intersection, keys, map, prop
  */
 export interface IKeyValue<T> {
   [x: string]: T;
-};
+}
 
 /**
  * Find and return the first defined property from within the list of provided properties from the object later
@@ -15,9 +15,9 @@ export interface IKeyValue<T> {
  *
  * @return {Function} A method that will return the first defined property from the object provided
  */
-export function firstDefinedProperty(props: string[]): (obj: Object) => any {
-  return (obj: Object): any => {
-    return prop(compose(head, curry(intersection)(props), keys)(obj), obj);
+export function firstDefinedProperty(props: string[]): (obj: object) => any {
+  return (obj: object): any => {
+    return prop(compose<any, any, any, any>(head, curry(intersection)(props), keys)(obj), obj);
   };
 }
 
