@@ -1,4 +1,4 @@
-# Web Component Manifest Scanner
+# Web Components Mangager Scanner
 
 Project scanner for WCM
 
